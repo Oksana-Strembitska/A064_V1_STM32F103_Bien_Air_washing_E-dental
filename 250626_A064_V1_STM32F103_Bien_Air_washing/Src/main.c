@@ -351,127 +351,140 @@ if (HAL_GetTick () - tim_data_chair_ok >= 100) // обновлення стан�
 //	Memory2Reset (); // обхідний клапан
 //}
 
-// Варіант 2 - інструменти промиваються почергово
 
+// Варіант 1_1 - всі клапани промиваються одночасно через один вихід (вмикання через контакти реле)
 
-static uint32_t washing_start = 0;
-static uint32_t tim_washing = 0;   // тут буде тривалість
-
-
-if (washing == 1 && hol_state == 2 && flag == 0)
+if (washing == 1)
 {
-    washing_start = HAL_GetTick();   // старт
-
-    BackrestDownSet();
-    BackrestUpReset();
-    ChairUpReset();
-    ChairDownReset();
-    Memory2Set();
-
-    flag = 1;
+	ChairDownSet (); // опція реле для вмикання клапанів промивки
+}
+else
+{
+	ChairDownReset ();// опція реле для вмикання клапанів промивки
 }
 
-if (washing == 0 && washing_start != 0 && tim_washing == 0)
-{
-    tim_washing = HAL_GetTick() - washing_start;  // ТРИВАЛІСТЬ
 
-    washing_start = 0;
-}
+//// Варіант 2 - інструменти промиваються почергово
 
-static uint32_t tim_washing_start1 = 0;
-static uint32_t tim_washing_start2 = 0;
-static uint32_t tim_washing_start3 = 0;
 
-uint32_t now = HAL_GetTick();
+//static uint32_t washing_start = 0;
+//static uint32_t tim_washing = 0;   // тут буде тривалість
 
-if (flag == 1 && washing == 0 && hol_state == 1)
-{
-    if (tim_washing_start1 == 0)
-        tim_washing_start1 = now;
 
-    if (now - tim_washing_start1 <= tim_washing)
-    {
-        BackrestDownReset();
-        BackrestUpSet();
-        ChairUpReset();
-        ChairDownReset();
-        Memory2Set();
-    }
-    else
-    {
-        flag = 2;
-        tim_washing_start1 = 0;
-    }
-}
-	
-else if (flag == 2 && washing == 0 && hol_state == 1)
-{
-    if (tim_washing_start2 == 0)
-        tim_washing_start2 = now;
+//if (washing == 1 && hol_state == 2 && flag == 0)
+//{
+//    washing_start = HAL_GetTick();   // старт
 
-    if (now - tim_washing_start2 <= tim_washing)
-    {
-        BackrestDownReset();
-				BackrestUpReset();
-        ChairUpSet();
-        ChairDownReset();
-        Memory2Set();
-    }
-    else
-    {
-        flag = 3;
-        tim_washing_start2 = 0;
-    }
-}
+//    BackrestDownSet();
+//    BackrestUpReset();
+//    ChairUpReset();
+//    ChairDownReset();
+//    Memory2Set();
 
-else if (flag == 3 && washing == 0 && hol_state == 1)
-{
-    if (tim_washing_start3 == 0)
-        tim_washing_start3 = now;
+//    flag = 1;
+//}
 
-    if (now - tim_washing_start3 <= tim_washing)
-    {
-        BackrestDownReset();
-				BackrestUpReset();
-				ChairUpReset();
-        ChairDownSet();
-        Memory2Set();
-    }
-    else
-    {
-        tim_washing_start3 = 0;
-        tim_washing = 0;   // очищаємо після використання
-        flag = 0;
-    }
-}
+//if (washing == 0 && washing_start != 0 && tim_washing == 0)
+//{
+//    tim_washing = HAL_GetTick() - washing_start;  // ТРИВАЛІСТЬ
 
-if (stop_washing == 1)
-{
-    BackrestDownReset();
-    BackrestUpReset();
-    ChairUpReset();
-    ChairDownReset();
-    Memory2Reset();
+//    washing_start = 0;
+//}
 
-    flag = 0;
-    tim_washing = 0;
-    washing_start = 0;
-		tim_washing_start1 = 0;
-		tim_washing_start2 = 0;
-		tim_washing_start3 = 0;
-}
-	
-if ((washing == 0 && hol_state != 1) || flag == 0)
-{
-        BackrestDownReset();  
-        BackrestUpReset();
-				ChairUpReset ();
-				ChairDownReset ();
-        Memory2Reset();
-				tim_washing_start1 = 0;
-				tim_washing_start2 = 0;
-				tim_washing_start3 = 0;
-}
+//static uint32_t tim_washing_start1 = 0;
+//static uint32_t tim_washing_start2 = 0;
+//static uint32_t tim_washing_start3 = 0;
+
+//uint32_t now = HAL_GetTick();
+
+//if (flag == 1 && washing == 0 && hol_state == 1)
+//{
+//    if (tim_washing_start1 == 0)
+//        tim_washing_start1 = now;
+
+//    if (now - tim_washing_start1 <= tim_washing)
+//    {
+//        BackrestDownReset();
+//        BackrestUpSet();
+//        ChairUpReset();
+//        ChairDownReset();
+//        Memory2Set();
+//    }
+//    else
+//    {
+//        flag = 2;
+//        tim_washing_start1 = 0;
+//    }
+//}
+//	
+//else if (flag == 2 && washing == 0 && hol_state == 1)
+//{
+//    if (tim_washing_start2 == 0)
+//        tim_washing_start2 = now;
+
+//    if (now - tim_washing_start2 <= tim_washing)
+//    {
+//        BackrestDownReset();
+//				BackrestUpReset();
+//        ChairUpSet();
+//        ChairDownReset();
+//        Memory2Set();
+//    }
+//    else
+//    {
+//        flag = 3;
+//        tim_washing_start2 = 0;
+//    }
+//}
+
+//else if (flag == 3 && washing == 0 && hol_state == 1)
+//{
+//    if (tim_washing_start3 == 0)
+//        tim_washing_start3 = now;
+
+//    if (now - tim_washing_start3 <= tim_washing)
+//    {
+//        BackrestDownReset();
+//				BackrestUpReset();
+//				ChairUpReset();
+//        ChairDownSet();
+//        Memory2Set();
+//    }
+//    else
+//    {
+//        tim_washing_start3 = 0;
+//        tim_washing = 0;   // очищаємо після використання
+//        flag = 0;
+//    }
+//}
+
+//if (stop_washing == 1)
+//{
+//    BackrestDownReset();
+//    BackrestUpReset();
+//    ChairUpReset();
+//    ChairDownReset();
+//    Memory2Reset();
+
+//    flag = 0;
+//    tim_washing = 0;
+//    washing_start = 0;
+//		tim_washing_start1 = 0;
+//		tim_washing_start2 = 0;
+//		tim_washing_start3 = 0;
+//}
+//	
+//if ((washing == 0 && hol_state != 1) || flag == 0)
+//{
+//        BackrestDownReset();  
+//        BackrestUpReset();
+//				ChairUpReset ();
+//				ChairDownReset ();
+//        Memory2Reset();
+//				tim_washing_start1 = 0;
+//				tim_washing_start2 = 0;
+//				tim_washing_start3 = 0;
+//}
 
 
    /* USER CODE END WHILE */
