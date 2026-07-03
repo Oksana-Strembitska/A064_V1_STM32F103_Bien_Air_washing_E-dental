@@ -356,11 +356,15 @@ if (HAL_GetTick () - tim_data_chair_ok >= 100) // обновлення стан�
 
 if (washing == 1)
 {
-	ChairDownSet (); // опція реле для вмикання клапанів промивки
+	OpenCollector2Set ();
+	CodeLEDSet ();
+	//ChairDownSet (); // опція реле для вмикання клапанів промивки
 }
 else
 {
-	ChairDownReset ();// опція реле для вмикання клапанів промивки
+	OpenCollector2Reset ();
+	CodeLEDReset ();
+	//ChairDownReset ();// опція реле для вмикання клапанів промивки
 }
 
 
