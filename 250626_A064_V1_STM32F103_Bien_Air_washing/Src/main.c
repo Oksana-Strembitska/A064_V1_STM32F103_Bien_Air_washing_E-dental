@@ -1,9 +1,9 @@
 /* USER CODE BEGIN Header */
 /**
   ******************************************************************************
-  * @file           : STM32F103_CAN_chair_A064_V1_Bien_Air+pedal.c
+  * @file           : STM32F103_CAN_chair_A064_V1_Bien_Air+pedal+washing.c
   * @brief          : Program for chair board AEGA 5.139.064 with Bien Air
-											platform and CAN pedal
+											platform, CAN pedal and washing
   ******************************************************************************
  */
 /* USER CODE END Header */
@@ -68,23 +68,24 @@ static void MX_CAN_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+uint8_t index_F = 0; // перша частина індексу посилки для chair
+uint8_t index_L = 0; // друга частина індексу посилки для chair
+uint8_t subindex_F = 0; // перша частина субіндексу посилки для chair
+uint8_t subindex_L = 0; // друга частина субіндексу посилки для chair
 uint8_t data_chair = 0; // дані про функції крісла HOME POSITION, CHAIR UP, CHAIR DOWN, BACKREST UP, BACKREST DOWN, SPITTON, MEMORY1, MEMORY2
 uint8_t data_light_water_chair = 0; //  дані про функції крісла MEMORY3, світильник LIGHT, плювальницю WATER F, WATER S
+uint8_t data_reserved = 0; // резервний байт
+uint8_t data_res_surgery = 0; // резервний байт
 
 uint8_t data_washing = 0; // промивка інструменту ON/OFF
-
 uint8_t washing = 0; // прапорець по включенню / виключенню промивки
 
 uint8_t state_masage = 0; // прапорець, який сигналізує, що дані по CAN отримані правильні
 
-static uint8_t holder_state = 0;
-uint8_t hol_state = 0;
-uint8_t flag = 0;
-uint8_t stop = 0;
-
-uint32_t tim_washing = 0;
-uint32_t tim_washing_add = 0;
+uint8_t index_F_holder = 0;
+uint8_t index_L_holder = 0;
+uint8_t subindex_lolder = 0;
+uint8_t holder_state = 0;
 
 uint8_t pedal_state = 0;
 uint8_t pedal_state_prev = 0;
@@ -131,20 +132,143 @@ uint8_t prev_state_pedal_on_off  = 0;
 
 uint8_t start_instrument = 0;
 
-uint8_t all_inst_off = 0;
-uint8_t stop_washing = 0;
-
 /* Робота з повідомленням про поточний стан кнопок data_Bien_Air*/
 /* Робота з повідомленням про поточний стан кнопок data_Bien_Air*/
 void decodeBienAirBuffRx (uint32_t *dataBienAirBuffRx) // робота з прийнятим повідомленням data_Bien_Air
 {	
 	// Перезапис даних із буфера data_Bien_Air у змінні
+	index_F = dataBienAirBuffRx [0]; // перша частина індексу посилки для chair
+	index_L = dataBienAirBuffRx [1]; // друга частина індексу посилки для chair
 	data_chair = dataBienAirBuffRx [2]; // перша частина субіндексу посилки для chair
 	data_light_water_chair = dataBienAirBuffRx [3]; // друга частина субіндексу посилки для chair
+	subindex_F = dataBienAirBuffRx [4]; // дані про функції крісла HOME POSITION, CHAIR UP, CHAIR DOWN, BACKREST UP, BACKREST DOWN, SPITTON, MEMORY1, MEMORY2
 	data_washing = dataBienAirBuffRx [5]; //  функція промивки ON/OFF
+	data_reserved = dataBienAirBuffRx [6]; // резервний байт
+	data_res_surgery = dataBienAirBuffRx [7]; // резервний байт
 
 		/*Формування стану виходів мікроконтролера для керування стоматологічним кріслом*/
 		/*Стан кнопки HOME POSITION / 0 ПОЗИЦІЯ*/
+		if (data_chair == 0x01 || data_chair == 0x04)
+		{
+			ChairDownSet (); // вихід мікроконтролера в 1		
+		}
+		else 
+		{
+			ChairDownReset (); // вихід мікроконтролера в 0
+		}	
+		
+		/* Стан кнопки CHAIR UP / КРІСЛО ВВЕРХ*/
+		if (data_chair == 0x02)
+		{
+			ChairUpSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			ChairUpReset (); // вихід мікроконтролера в 0
+		}	
+	
+//		/* Стан кнопки CHAIR DOWN / КРІСЛО ВНИЗ*/
+//		if (data_chair == 0x04)
+//		{
+//			ChairDownSet (); // вихід мікроконтролера в 1		
+//		}
+//		else
+//		{
+//			ChairDownReset (); // вихід мікроконтролера в 0
+//		}		
+
+		/* Стан кнопки BACKREST UP / СПИНКА ВВЕРХ*/
+		if (data_chair == 0x08)
+		{
+			BackrestUpSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			BackrestUpReset (); // вихід мікроконтролера в 0
+		}		
+
+		/* Стан кнопки BACKREST DOWN / СПИНКА ВНИЗ*/
+		if (data_chair == 0x10)
+		{
+			BackrestDownSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			BackrestDownReset (); // вихід мікроконтролера в 0
+		}	
+
+		/* Стан кнопки SPITTOON / СПЛЬОВУВАННЯ*/
+		if (data_chair == 0x20)
+		{
+			SpittoonSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			SpittoonReset (); // вихід мікроконтролера в 0
+		}			
+
+		/* Стан кнопки MEMORY 1 / ПРОГРАМА 1*/
+		if (data_chair == 0x40)
+		{
+			Memory1Set (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			Memory1Reset (); // вихід мікроконтролера в 0
+		}	
+
+		/* Стан кнопки MEMORY 2 / ПРОГРАМА 2*/
+		if (data_chair == 0x80)
+		{
+			Memory2Set (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			Memory2Reset (); // вихід мікроконтролера в 0
+		}
+
+//		/* Стан кнопки MEMORY 3 / ПРОГРАМА 3*/
+//		if ((data_light_water_chair & 0x01) == 0x01)
+//		{
+//			Memory3Set (); // вихід мікроконтролера в 1		
+//		}
+//		else
+//		{
+//			Memory3Reset (); // вихід мікроконтролера в 0
+//		}	
+		
+		/* Стан кнопки LIGHT ON / СВІТИЛЬНИК*/
+		if (data_light_water_chair == 0x02)
+		{
+			LightONSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			LightONReset (); // вихід мікроконтролера в 0
+		}
+
+		/* Стан кнопки WATER S / ЗМИВ ПЛЮВАЛЬНИЦІ*/
+		if (data_light_water_chair == 0x04)
+		{
+			WaterSSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			WaterSReset (); // вихід мікроконтролера в 0
+		}
+
+		/* Стан кнопки WATER F / НАПОВНЕННЯ СКЛЯНКИ*/
+		if (data_light_water_chair == 0x08)
+		{
+			WaterFSet (); // вихід мікроконтролера в 1		
+		}
+		else
+		{
+			WaterFReset (); // вихід мікроконтролера в 0
+		}	
+
+		/*Формування стану виходів мікроконтролера для керування стоматологічним кріслом*/
+		/*Стан кнопки промивка*/
 		if (data_washing == 0x20)
 		{
 			washing = 1; // промивка ON
@@ -152,31 +276,29 @@ void decodeBienAirBuffRx (uint32_t *dataBienAirBuffRx) // робота з при
 		else if (data_washing == 0x00)
 		{
 			washing = 0; // промивка OFF
-		}			
+		}		
 }
 
 void decodeBienAirBuffHolder (uint32_t *dataBienAirBuffHolder) // робота з прийнятим повідомленням data_Bien_Air
 {
-	holder_state = dataBienAirBuffHolder [5];
-	all_inst_off = dataBienAirBuffHolder [4];
+	holder_state = dataBienAirBuffHolder [4];
 	
-	if (all_inst_off == 0xFF)
+	if (holder_state == 0xFF)
 	{
-	  stop_washing = 1;
+	  pedal_state = 0;
 	}
-	else if (all_inst_off != 0xFF)
+	else if (holder_state == 0x03)
 	{
-		stop_washing = 0;
-	}	
-	
-	if (holder_state == 0x01)
-	{
-	  hol_state = 1;
-	}
-	else if (holder_state == 0x81)
-	{
-		hol_state = 2;
+		pedal_state = 1;
 	}		
+	else if (holder_state == 0x04)
+	{
+		pedal_state = 3;
+	}
+	else
+	{
+		pedal_state = 2;
+	}
 }
 /* USER CODE END 0 */
 
@@ -291,7 +413,7 @@ if (HAL_GetTick () - tim_data_chair_ok >= 100) // обновлення стан�
 	tim_data_chair_ok = HAL_GetTick(); // для відліку часу використано системний таймер
 	timeRemove++;
 	
-	if (state_CAN == 1) // якщо отримано буфер data_Bien_Air
+	if (state_CAN == 1 && state_masage == 1) // якщо отримано буфер data_Bien_Air
 	{
 		ErrorLEDReset (); // ввімкнення світлодіода Error - вимкнено - є передача даних по CAN 
 	}
@@ -332,165 +454,367 @@ if (HAL_GetTick () - tim_data_chair_ok >= 100) // обновлення стан�
 	}	
 }	
 
-// Варіант 1 - всі клапани промиваються одночасно
-
-//if (washing == 1)
-//{
-//  BackrestDownSet (); // інструмент 1
-//	BackrestUpSet (); // інструмент 2
-//	ChairUpSet (); // інструмент 3
-//	ChairDownSet (); // інструмент 4
-//	Memory2Set (); // обхідний клапан
-//}
-//else
-//{
-//  BackrestDownReset (); // інструмент 1
-//	BackrestUpReset (); // інструмент 2
-//	ChairUpReset (); // інструмент 3
-//	ChairDownReset (); // інструмент 4
-//	Memory2Reset (); // обхідний клапан
-//}
-
-
-// Варіант 1_1 - всі клапани промиваються одночасно через один вихід (вмикання через контакти реле)
-
 if (washing == 1)
 {
 	OpenCollector2Set ();
 	CodeLEDSet ();
-	//ChairDownSet (); // опція реле для вмикання клапанів промивки
 }
 else
 {
 	OpenCollector2Reset ();
 	CodeLEDReset ();
-	//ChairDownReset ();// опція реле для вмикання клапанів промивки
 }
 
+if (HAL_GetTick () - time_button >= 50)
+{
+	time_button = HAL_GetTick ();
+	
+		//Прийом даних з АЦП / ADC1
+	HAL_ADC_Start (&hadc1); // старт АЦП
+	HAL_ADC_PollForConversion (&hadc1, 100); // АЦП запускає перетворення даних кожні 100мс
+	adcResult = HAL_ADC_GetValue (&hadc1); // дані, які отримано з АЦП 12-бітного
+	adcResult >>= 1;
+	HAL_ADC_Stop (&hadc1);	// зупинка АЦП
+	if (adcResult <= 300)
+	{
+		adcResult = 300;
+		adcResultmn = 300;
+	}
+	
+if (pedal_state == 1)
+{
+	//Стан кнопок для керування роботою багатофункційної педалі - Pedal_ON/OFF, CHIP та SPRAY
+	if (readButtonPedalONOFF () == 1) // стан кнопки Pedal_ON/OFF / Педаль_ВКЛ./ВиКЛ.
+	{
+		button_push_pedal = 1;
+	}
+	else 
+	{
+		button_push_pedal = 0;
+	}
+	}
+		
+if (pedal_state == 2)
+{
+	//Стан кнопок для керування роботою багатофункційної педалі - Pedal_ON/OFF, CHIP та SPRAY
+	if ((readButtonPedalONOFF () == 1) && (adcResult >= 320)) // стан кнопки Pedal_ON/OFF / Педаль_ВКЛ./ВиКЛ.
+	{
+		button_push_pedal = 1;
+	if (adcResult <= 300)
+	{
+		adcResultmn = 300;
+	}
+	else if (adcResult > 300)
+	{	
+	adcResultmn = adcResult;
+	}
+	
+	dataResultL = adcResultmn;	
+	dataResultM = adcResultmn >> 8;  // дані, які приведено до АЦП 8-бітного
+	}
+	else if ((readButtonPedalONOFF () == 0) || (adcResult < 320)) 
+	{
+		button_push_pedal = 0;
+		dataResultL = adcResultmn;	
+		dataResultM = adcResultmn >> 8;
+	}
+	}
 
-//// Варіант 2 - інструменти промиваються почергово
+	
+if (pedal_state == 3)
+{
+	//Стан кнопок для керування роботою багатофункційної педалі - Pedal_ON/OFF, CHIP та SPRAY
+	if (readButtonPedalONOFF () == 1) //&& (adcResult >= 320)) // стан кнопки Pedal_ON/OFF / Педаль_ВКЛ./ВиКЛ.
+	{
+		button_push_pedal = 1;
+	}
+	else if (readButtonPedalONOFF () == 0) //|| (adcResult < 320))
+	{
+		button_push_pedal = 0;
+	}				
+	}	
+					
+	if (readButtonCHIP () == 1) // стан кнопки CHIP / ПРОДУВКА
+	{
+		button_push_CHIP = 1; // функція СHIP / ПРОДУВКА - увімкнута ON
+	}
+	else
+	{
+		button_push_CHIP = 0; // функція СHIP / ПРОДУВКА - вимкнута OFF
+	}
+	
+	if (readButtonSPRAY () == 1) // стан кнопки CHIP / ПРОДУВКА
+	{
+		button_push_SPRAY = 1; // функція СHIP / ПРОДУВКА - увімкнута ON
+	}
+	else
+	{
+		button_push_SPRAY = 0; // функція СHIP / ПРОДУВКА - вимкнута OFF
+	}
 
+button_BienAir = 0x00;
+if (button_push_SPRAY == 1)
+{
+	button_BienAir = 0x08;
+}	
 
-//static uint32_t washing_start = 0;
-//static uint32_t tim_washing = 0;   // тут буде тривалість
+if (button_push_CHIP == 1)
+{
+	button_BienAir = 0x04;
+	if (button_push_SPRAY==1)
+	{
+		button_BienAir = 0x0C;
+	}
+	if (button_push_pedal == 1)
+	{
+	 button_BienAir = 0x14;
+	}
+}
+	
+if (button_push_pedal == 1)
+{
+	button_BienAir = 0x10;
+	if (button_push_SPRAY == 1)
+	{
+		button_BienAir = 0x18;
+		if (button_push_CHIP == 1)
+		{
+			button_BienAir = 0x1C;
+		}
+	}
+}
+}
 
+if (HAL_GetTick () - time_state_CAN_ >= 90) // таймер, який відраховує 3с від ввімкнення живлення, якщо немає прийому даних data_Bien_Air
+{	
+	time_state_CAN_ = HAL_GetTick (); // для відліку часу використано системний таймер
+	
+	if (start_instrument == 1)
+	{
+				// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//if (washing == 1 && hol_state == 2 && flag == 0)
-//{
-//    washing_start = HAL_GetTick();   // старт
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = 0x00; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення	
+		
+			start_instrument = 0;
+	}
 
-//    BackrestDownSet();
-//    BackrestUpReset();
-//    ChairUpReset();
-//    ChairDownReset();
-//    Memory2Set();
+else
+{
+if (pedal_state_prev != pedal_state)
+{
+	if ((pedal_state == 2) && (pedal_state_prev  != 2) && (button_push_pedal == 1))
+	{
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    flag = 1;
-//}
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x40; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x01; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+	}
+	
+	if ((pedal_state == 3) && (pedal_state_prev != 3) && (button_push_pedal == 1))
+	{
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//if (washing == 0 && washing_start != 0 && tim_washing == 0)
-//{
-//    tim_washing = HAL_GetTick() - washing_start;  // ТРИВАЛІСТЬ
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+	}	
+	
+	if ((pedal_state == 1) && (pedal_state_prev != 1) && (button_push_pedal == 1))
+	{
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    washing_start = 0;
-//}
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+	}
+	
+	pedal_state_prev = pedal_state;
+}
 
-//static uint32_t tim_washing_start1 = 0;
-//static uint32_t tim_washing_start2 = 0;
-//static uint32_t tim_washing_start3 = 0;
+if (prev_state_pedal_on_off != button_push_pedal)
+{
+	if ((button_push_pedal == 1) && (prev_state_pedal_on_off == 0) && (adcResult <= 320) && (pedal_state == 2))
+	{
+		
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//uint32_t now = HAL_GetTick();
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x40; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x01; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = 0x00; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+	}
+	
+	if ((button_push_pedal == 1) && (prev_state_pedal_on_off == 0) && (adcResult > 320) && (pedal_state == 2))
+	{
+		
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//if (flag == 1 && washing == 0 && hol_state == 1)
-//{
-//    if (tim_washing_start1 == 0)
-//        tim_washing_start1 = now;
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x40; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x01; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = 0x00; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+	}
+		
+	if ((button_push_pedal == 1) && (prev_state_pedal_on_off == 0) && (pedal_state == 1))
+	{
+		
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    if (now - tim_washing_start1 <= tim_washing)
-//    {
-//        BackrestDownReset();
-//        BackrestUpSet();
-//        ChairUpReset();
-//        ChairDownReset();
-//        Memory2Set();
-//    }
-//    else
-//    {
-//        flag = 2;
-//        tim_washing_start1 = 0;
-//    }
-//}
-//	
-//else if (flag == 2 && washing == 0 && hol_state == 1)
-//{
-//    if (tim_washing_start2 == 0)
-//        tim_washing_start2 = now;
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = 0x00; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+		}
+	
+	if ((button_push_pedal == 1) && (prev_state_pedal_on_off == 0) && (pedal_state == 3))
+	{		
+			// Передача буфера data_pedal				
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    if (now - tim_washing_start2 <= tim_washing)
-//    {
-//        BackrestDownReset();
-//				BackrestUpReset();
-//        ChairUpSet();
-//        ChairDownReset();
-//        Memory2Set();
-//    }
-//    else
-//    {
-//        flag = 3;
-//        tim_washing_start2 = 0;
-//    }
-//}
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // 0x9C; // значення 156 // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // 0x00; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = 0x00; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+		}
+	
+				prev_state_pedal_on_off = button_push_pedal;
+}
 
-//else if (flag == 3 && washing == 0 && hol_state == 1)
-//{
-//    if (tim_washing_start3 == 0)
-//        tim_washing_start3 = now;
+if ((pedal_state == 2) && (pedal_state_prev == pedal_state) && (prev_state_pedal_on_off == button_push_pedal)) 
+{	
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    if (now - tim_washing_start3 <= tim_washing)
-//    {
-//        BackrestDownReset();
-//				BackrestUpReset();
-//				ChairUpReset();
-//        ChairDownSet();
-//        Memory2Set();
-//    }
-//    else
-//    {
-//        tim_washing_start3 = 0;
-//        tim_washing = 0;   // очищаємо після використання
-//        flag = 0;
-//    }
-//}
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = dataResultL; // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = dataResultM; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+}
 
-//if (stop_washing == 1)
-//{
-//    BackrestDownReset();
-//    BackrestUpReset();
-//    ChairUpReset();
-//    ChairDownReset();
-//    Memory2Reset();
+if ((pedal_state == 3) && (pedal_state_prev == pedal_state) && (prev_state_pedal_on_off == button_push_pedal))
+{	
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
-//    flag = 0;
-//    tim_washing = 0;
-//    washing_start = 0;
-//		tim_washing_start1 = 0;
-//		tim_washing_start2 = 0;
-//		tim_washing_start3 = 0;
-//}
-//	
-//if ((washing == 0 && hol_state != 1) || flag == 0)
-//{
-//        BackrestDownReset();  
-//        BackrestUpReset();
-//				ChairUpReset ();
-//				ChairDownReset ();
-//        Memory2Reset();
-//				tim_washing_start1 = 0;
-//				tim_washing_start2 = 0;
-//				tim_washing_start3 = 0;
-//}
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; //dataResultL; // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; //dataResultM; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+}
 
+if ((pedal_state == 1) && (pedal_state_prev == pedal_state) && (prev_state_pedal_on_off == button_push_pedal))
+{	
+			TxHeader.StdId = 0x060A;
+			TxHeader.RTR = CAN_RTR_DATA;
+			TxHeader.IDE = CAN_ID_STD;
+			TxHeader.DLC = 8;
+			TxHeader.ExtId = 0;
 
+			canTxBuffer[0] = 0x22; // ініціалізація читання/запису даних для плати платформи - фіксоване значення
+			canTxBuffer[1] = 0x30; // IDX LSB індекс повідомлення - молодший байт - фіксоване значення
+			canTxBuffer[2] = 0x20; // IDX MSB індекс повідомлення - старший байт - фіксоване значення
+			canTxBuffer[3] = 0x0E; // SubIndex - фіксоване значення
+			canTxBuffer[4] = 0x60; // CAN pedal Value LSB - дані з педалі молодший байт - дані!!!!!
+			canTxBuffer[5] = 0x02; // CAN pedal Value MSB - дані з педалі старший байт - дані!!!!!
+			canTxBuffer[6] = button_BienAir; // стан кнопок SPRAY/CHIP - дані!!!!!
+			canTxBuffer[7] = 0x00; // Reserved - фіксоване значення
+}
+}
+			HAL_CAN_AddTxMessage (&hcan, &TxHeader, canTxBuffer, &TxMailBox);	
+			HAL_Delay (10);
+}
    /* USER CODE END WHILE */
 
    /* USER CODE BEGIN 3 */

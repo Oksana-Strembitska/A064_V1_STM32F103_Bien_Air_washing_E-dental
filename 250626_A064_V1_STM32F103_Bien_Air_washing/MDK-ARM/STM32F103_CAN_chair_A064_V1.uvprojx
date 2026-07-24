@@ -49,7 +49,7 @@
             <InvalidFlash>1</InvalidFlash>
           </TargetStatus>
           <OutputDirectory>STM32F103_CAN_chair_A064_V1\</OutputDirectory>
-          <OutputName>A064_V1_0_F103_BIEN_AIR_pedal_310326</OutputName>
+          <OutputName>A064_V2_0_F103_BIEN_AIR_pedal_240726</OutputName>
           <CreateExecutable>1</CreateExecutable>
           <CreateLib>0</CreateLib>
           <CreateHexFile>1</CreateHexFile>
